@@ -26,14 +26,31 @@ void managerchannel::handlePrivmsg(const std::string &input, client &c)
     std::stringstream ss(input);
     std::string command, allTargets;
     ss >> command >> allTargets;
-    size_t colon_pos = input.find(':');
-    if (colon_pos == std::string::npos || allTargets.empty())
+    if (allTargets.empty())
     {
         std::string err = ":ircserv 412 " + c.nickname + " :No text to send\r\n";
         send(c.fd, err.c_str(), err.size(), 0);
         return;
     }
-    std::string message_content = input.substr(colon_pos);
+
+    size_t target_pos = input.find(allTargets);
+    if (target_pos == std::string::npos)
+    {
+        std::string err = ":ircserv 412 " + c.nickname + " :No text to send\r\n";
+        send(c.fd, err.c_str(), err.size(), 0);
+        return;
+    }
+
+    std::string remainder = input.substr(target_pos + allTargets.size());
+    size_t first_non_space = remainder.find_first_not_of(" \t\r\n");
+    if (first_non_space == std::string::npos || remainder[first_non_space] != ':')
+    {
+        std::string err = ":ircserv 412 " + c.nickname + " :No text to send\r\n";
+        send(c.fd, err.c_str(), err.size(), 0);
+        return;
+    }
+
+    std::string message_content = remainder.substr(first_non_space);
 
     std::vector<std::string> targets = splitByComma(allTargets);
 

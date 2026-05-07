@@ -14,6 +14,28 @@
 #include "../../include/utls.hpp"
 #include "../../include/server.hpp"
 
+namespace
+{
+    void removeClientFromChannel(Channel *room, int fd)
+    {
+        for (std::vector<int>::iterator it = room->members.begin(); it != room->members.end();)
+        {
+            if (*it == fd)
+                it = room->members.erase(it);
+            else
+                ++it;
+        }
+
+        for (std::vector<int>::iterator it = room->operators.begin(); it != room->operators.end();)
+        {
+            if (*it == fd)
+                it = room->operators.erase(it);
+            else
+                ++it;
+        }
+    }
+}
+
 
 
 std::vector<std::string> managerchannel::splitByComma(const std::string &s) {
@@ -52,13 +74,20 @@ void managerchannel::handleJoin(const std::string &input, client &c)
     if (tokens.size() >= 3)
         key_list = splitByComma(tokens[2]);
 
+    for (size_t i = 0; i < chan_list.size(); i++)
+    {
+        if (chan_list[i].empty() || chan_list[i][0] != '#')
+        {
+            std::string err = ":ircserv 476 " + c.nickname + " " + chan_list[i] + " :Bad Channel Mask\r\n";
+            send(c.fd, err.c_str(), err.size(), 0);
+            return;
+        }
+    }
+
     for (size_t i = 0; i < chan_list.size(); i++) 
     {
         std::string current_name = chan_list[i];
         std::string current_key = (i < key_list.size()) ? key_list[i] : "";
-        
-        if (current_name[0] != '#')
-            current_name = "#" + current_name;
 
         Channel *targetChannel = NULL;
         std::map<std::string, Channel*>::iterator it_chan = channels.find(current_name);
@@ -193,7 +222,7 @@ void managerchannel::handlePart(const std::string &input, client &c)
                     send(room->members[i], part_msg.c_str(), part_msg.size(), 0);
                 }
 
-                room->members.erase(vit);
+                removeClientFromChannel(room, c.fd);
                 if (room->members.empty()) 
                 {
                     delete room; 
@@ -233,7 +262,6 @@ void managerchannel::handleQuit(const std::string &input, client &c)
     while (it != channels.end())
     {
         Channel* room = it->second;
-        // REMOVED: bool user_found_in_room = false;
 
         for (std::vector<int>::iterator vit = room->members.begin(); vit != room->members.end(); ++vit)
         {
@@ -244,8 +272,7 @@ void managerchannel::handleQuit(const std::string &input, client &c)
                     if (room->members[i] != c.fd)
                         send(room->members[i], quit_msg.c_str(), quit_msg.size(), 0);
                 }
-                room->members.erase(vit);
-                // REMOVED: user_found_in_room = true;
+                removeClientFromChannel(room, c.fd);
                 break; 
             }
         }
