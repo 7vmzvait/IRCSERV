@@ -26,7 +26,7 @@ void managerchannel::handleKick(const std::string &input, client &c)
         pos += target_nick.length();
         reason = input.substr(pos);
     }
-    if (reason.empty() || reason == " ") reason = " :Kicked by operator";
+    if (reason.empty() || reason == " ") reason = " :Kicked by operator : " + c.nickname;
 
     std::map<std::string, Channel*>::iterator it = channels.find(channel_name);
     if (it == channels.end()) {
