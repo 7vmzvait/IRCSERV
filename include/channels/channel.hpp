@@ -34,7 +34,7 @@ struct Channel
 class managerchannel
 {
     private:
-        std::map<int, client> _clients;
+        std::map<int, client> &_clients;
         std::map<std::string, Channel*> channels;
         std::map<std::string, Channel*>::iterator it; 
         std::vector<std::string> tokens;

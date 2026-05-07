@@ -6,7 +6,7 @@
 /*   By: haitaabe <haitaabe@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/21 00:47:05 by eazmir            #+#    #+#             */
-/*   Updated: 2026/04/21 18:53:37 by haitaabe         ###   ########.fr       */
+/*   Updated: 2026/05/07 14:51:54 by haitaabe         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -30,31 +30,43 @@ int authentication::handlePass(client &c,const std::string &pass)
     return (1);
 }
 
-int authentication::handleUser(client &c,const std::string &user)
+int authentication::handleUser(client &c, const std::string &user)
 {
     if (c.regestred)
         return (0);
-    else if (user.size() > 10)
+
+    if (user.size() > 10)
     {
         std::string err = ":ircserv 432 * USER :Invalid username length (max 10)\r\n";
         send(c.fd, err.c_str(), err.size(), 0);
         return (0);
     }
+
     c.username = user;
     c.user_ok = true;
+
+    if (c.nick_ok && c.pass_ok) 
+    {
+        c.regestred = true;
+        std::string welcome = ":ircserv 001 " + c.nickname + " :Welcome to the IRC Network, " + c.nickname + "!\r\n";
+        send(c.fd, welcome.c_str(), welcome.size(), 0);
+    }
+
     return (1);
 }
 
-int authentication::handleNick(client &c,const std::string &nick)
+int authentication::handleNick(client &c, const std::string &nick)
 {
     if (c.regestred)
         return(0);
-    else if (nick.size() > 9)
+        
+    if (nick.size() > 9)
     {
         std::string err = ":ircserv 432 * NICK :Invalid Nickname length (max 9)\r\n";
         send(c.fd, err.c_str(), err.size(), 0);
         return(0);
     }
+    
     for (std::map<int, client>::iterator it = _clients.begin(); it != _clients.end(); ++it)
     {
         if (it->second.nickname == nick)
@@ -64,8 +76,16 @@ int authentication::handleNick(client &c,const std::string &nick)
             return 0;
         }
     }
-    c.nick_ok = true;
+
     c.nickname = nick;
+    c.nick_ok = true;
+    if (c.nick_ok && c.user_ok && c.pass_ok)
+    {
+        c.regestred = true;
+        std::string welcome = ":ircserv 001 " + c.nickname + " :Welcome to the IRC Network, " + c.nickname + "!\r\n";
+        send(c.fd, welcome.c_str(), welcome.size(), 0);
+    }
+
     return (1);
 }
 
@@ -137,12 +157,11 @@ std::string authentication::Extract_user(const std::vector<std::string> &args)
     return (name);
 }
 
-void authentication::checkRegistration(client &c)
+void authentication::checkRegistration(client &c) 
 {
-    if (c.nick_ok && c.pass_ok && c.user_ok)
-    {
-        Utils::send_welcome(c);
-        // Utils::sendAuthWelcome(c);
+    if (c.pass_ok && c.nick_ok && c.user_ok && !c.regestred) {
         c.regestred = true;
+        std::string welcome = ":ircserv 001 " + c.nickname + " :Welcome to the IRC Network, " + c.nickname + "\r\n";
+        send(c.fd, welcome.c_str(), welcome.size(), 0);
     }
 }
