@@ -50,7 +50,7 @@ Example:
 In another terminal:
 
 ```bash
-nc 127.0.0.1 6667
+nc -C 127.0.0.1 6667
 ```
 
 Then send IRC commands manually, for example:
