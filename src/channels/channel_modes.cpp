@@ -14,47 +14,44 @@
 #include "../../include/utls.hpp"
 #include "../../include/server.hpp"
 
-namespace
+static bool isPositiveNumber(const std::string &value)
 {
-    bool isPositiveNumber(const std::string &value)
+    if (value.empty())
+        return false;
+    for (size_t i = 0; i < value.size(); ++i)
     {
-        if (value.empty())
+        if (!std::isdigit(value[i]))
             return false;
-        for (size_t i = 0; i < value.size(); ++i)
-        {
-            if (!std::isdigit(value[i]))
-                return false;
-        }
-        return true;
     }
+    return true;
+}
 
-    void sendModeError(client &c, const std::string &target, const std::string &text)
+static void sendModeError(client &c, const std::string &target, const std::string &text)
+{
+    std::string err = ":ircserv 696 " + c.nickname + " " + target + " :" + text + "\r\n";
+    send(c.fd, err.c_str(), err.size(), 0);
+}
+
+static std::string buildChannelModes(Channel *room)
+{
+    std::string modes = "+";
+    std::string params;
+
+    if (room->invite_only)
+        modes += "i";
+    if (room->topic_restricted)
+        modes += "t";
+    if (!room->password.empty())
     {
-        std::string err = ":ircserv 696 " + c.nickname + " " + target + " :" + text + "\r\n";
-        send(c.fd, err.c_str(), err.size(), 0);
+        modes += "k";
+        params += " " + room->password;
     }
-
-    std::string buildChannelModes(Channel *room)
+    if (room->limit > 0)
     {
-        std::string modes = "+";
-        std::string params;
-
-        if (room->invite_only)
-            modes += "i";
-        if (room->topic_restricted)
-            modes += "t";
-        if (!room->password.empty())
-        {
-            modes += "k";
-            params += " " + room->password;
-        }
-        if (room->limit > 0)
-        {
-            modes += "l";
-            params += " " + Utils::to_str(room->limit);
-        }
-        return modes + params;
+        modes += "l";
+        params += " " + Utils::to_str(room->limit);
     }
+    return modes + params;
 }
 
 void managerchannel::handleMode(const std::string &input, client &c) {

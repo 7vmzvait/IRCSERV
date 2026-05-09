@@ -14,25 +14,22 @@
 #include "../../include/utls.hpp"
 #include "../../include/server.hpp"
 
-namespace
+static void removeClientFromChannel(Channel *room, int fd)
 {
-    void removeClientFromChannel(Channel *room, int fd)
+    for (std::vector<int>::iterator it = room->members.begin(); it != room->members.end();)
     {
-        for (std::vector<int>::iterator it = room->members.begin(); it != room->members.end();)
-        {
-            if (*it == fd)
-                it = room->members.erase(it);
-            else
-                ++it;
-        }
+        if (*it == fd)
+            it = room->members.erase(it);
+        else
+            ++it;
+    }
 
-        for (std::vector<int>::iterator it = room->operators.begin(); it != room->operators.end();)
-        {
-            if (*it == fd)
-                it = room->operators.erase(it);
-            else
-                ++it;
-        }
+    for (std::vector<int>::iterator it = room->operators.begin(); it != room->operators.end();)
+    {
+        if (*it == fd)
+            it = room->operators.erase(it);
+        else
+            ++it;
     }
 }
 
